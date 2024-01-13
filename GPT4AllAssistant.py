@@ -14,7 +14,8 @@ model_path = f"{os.environ['LOCALAPPDATA']}\\nomic.ai\\GPT4All"
 
 model = gpt4all.GPT4All(model_name, model_path=model_path)
 
-
+listen_thread = None
+process_thread = None
 
 def listen_for_speech(recognizer, microphone):
     global recognized_text
@@ -31,28 +32,22 @@ def listen_for_speech(recognizer, microphone):
             except sr.RequestError as e:
                 print(f"Google API request failed; {e}")
 
-
 def say(text, engine):
     engine.say(text)
     engine.runAndWait()
 
-
 def process_command(command, tts_engine):
+    global recognized_text
     start = time.time()
     command = re.sub(r"assistant", "", command)
     command = re.sub(r"assistent", "", command)
     command = command.strip()
     print(f"Processing: {command}")
-    say("Befehl erfasst. Berechne...", tts_engine)
     with model.chat_session(system_prompt):
         response = model.generate(command)
     print(f"Assistant: {response}")
-    say(response,tts_engine)
-    print(f"Command finished-{time.time()-start} seconds")
-    listen_thread.join()
-    process_thread.join()
-    listen_thread.start()
-    process_thread.start()
+    print(f"Command finished - {time.time() - start} seconds")
+    recognized_text = ""
 
 
 def process_recognized_text(tts_engine):
@@ -62,8 +57,6 @@ def process_recognized_text(tts_engine):
             print("User:", recognized_text)
             if recognized_text.lower().startswith("assistant") or recognized_text.lower().startswith("assistent"):
                 process_command(recognized_text, tts_engine)
-            recognized_text = ""
-
 
 if __name__ == "__main__":
     recognizer = sr.Recognizer()
